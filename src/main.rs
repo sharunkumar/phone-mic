@@ -128,6 +128,7 @@ mod tray {
 
     pub struct AppData {
         pub active: bool,
+        pub systemd: bool,
         pub tx: mpsc::Sender<TrayMessage>,
     }
 
@@ -150,11 +151,12 @@ mod tray {
         }
 
         fn tool_tip(&self) -> ksni::ToolTip {
-            let active = self.data.lock().unwrap().active;
-            let status = if active { "Active" } else { "Inactive" };
+            let data = self.data.lock().unwrap();
+            let status = if data.active { "Active" } else { "Inactive" };
+            let suffix = if data.systemd { " (systemd)" } else { "" };
             ksni::ToolTip {
                 title: "Phone Mic".to_string(),
-                description: format!("Use your phone as a microphone — {}", status),
+                description: format!("Use your phone as a microphone — {}{}", status, suffix),
                 ..Default::default()
             }
         }
@@ -209,6 +211,7 @@ mod tray {
 
     pub struct AppData {
         pub active: bool,
+        pub systemd: bool,
         pub tx: mpsc::Sender<TrayMessage>,
     }
 
@@ -268,8 +271,10 @@ fn main() {
     prime_adb();
 
     let (tx, rx) = mpsc::channel();
+    let systemd = std::env::var("SYSTEMD").is_ok();
     let data = Arc::new(Mutex::new(tray::AppData {
         active: false,
+        systemd,
         tx,
     }));
 
