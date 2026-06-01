@@ -309,7 +309,7 @@ checksum = "c10569378a1dacd9f30dbe7ae49e054d2c45dc2f8ee49899903e09c3924e8b6f"
 
 [[package]]
 name = "phone-mic"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ksni",
  "single-instance",
