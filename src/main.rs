@@ -131,6 +131,11 @@ mod tray {
             "Phone Mic".to_string()
         }
 
+        fn activate(&mut self, _x: i32, _y: i32) {
+            let data = self.data.lock().unwrap();
+            let _ = data.tx.send(TrayMessage::Toggle);
+        }
+
         fn menu(&self) -> Vec<ksni::MenuItem<Self>> {
             use ksni::menu::*;
             let data = self.data.lock().unwrap();
