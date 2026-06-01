@@ -1,8 +1,10 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+use notify_rust::Notification;
 use std::process::{Child, Command, Stdio};
+use std::sync::mpsc;
 use std::sync::Mutex;
-use tauri::menu::{Menu, MenuItem};
-use tauri::tray::TrayIconBuilder;
-use tauri::Manager;
+use tray_item::{IconSource, TrayItem};
 
 const LATENCY: &str = "125";
 const PIPE: &str = "/tmp/scrcpy_pipe";
@@ -91,53 +93,78 @@ impl PhoneMicState {
     }
 }
 
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+enum TrayMessage {
+    Toggle,
+    Quit,
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
-        .manage(Mutex::new(PhoneMicState::new()))
-        .setup(|app| {
-            let toggle = MenuItem::with_id(app, "toggle", "Activate Phone Mic", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&toggle, &quit])?;
+fn get_icon() -> IconSource {
+    #[cfg(target_os = "windows")]
+    return IconSource::Resource("phone-mic");
+    #[cfg(not(target_os = "windows"))]
+    return IconSource::Resource("audio-input-microphone");
+}
 
-            let toggle = toggle.clone();
+fn main() {
+    let instance = single_instance::SingleInstance::new("phone-mic").unwrap();
+    if !instance.is_single() {
+        eprintln!("Another instance of phone-mic is already running");
+        std::process::exit(1);
+    }
 
-            TrayIconBuilder::new()
-                .icon(tauri::include_image!("icons/32x32.png"))
-                .menu(&menu)
-                .on_menu_event(move |app, event| {
-                    let state = app.state::<Mutex<PhoneMicState>>();
-                    let mut state = state.lock().unwrap();
+    let mut tray = TrayItem::new("Phone Mic", get_icon()).unwrap();
+    tray.add_label("Phone Mic").unwrap();
 
-                    match event.id().as_ref() {
-                        "toggle" => {
-                            if state.is_active() {
-                                state.stop();
-                                let _ = toggle.set_text("Activate Phone Mic");
-                            } else if let Err(e) = state.start() {
-                                eprintln!("phone-mic error: {}", e);
-                            } else {
-                                let _ = toggle.set_text("Deactivate Phone Mic");
-                            }
-                        }
-                        "quit" => {
-                            state.stop();
-                            app.exit(0);
-                        }
-                        _ => {}
-                    }
-                })
-                .build(app)?;
+    let state = Mutex::new(PhoneMicState::new());
+    let (tx, rx) = mpsc::sync_channel(1);
 
-            Ok(())
-        })
-        .invoke_handler(tauri::generate_handler![greet])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+    let toggle_tx = tx.clone();
+    tray.add_menu_item("Toggle Phone Mic", move || {
+        let _ = toggle_tx.send(TrayMessage::Toggle);
+    })
+    .unwrap();
+
+    #[cfg(target_os = "windows")]
+    tray.inner_mut().add_separator().unwrap();
+
+    let quit_tx = tx.clone();
+    tray.add_menu_item("Quit", move || {
+        let _ = quit_tx.send(TrayMessage::Quit);
+    })
+    .unwrap();
+
+    loop {
+        match rx.recv() {
+            Ok(TrayMessage::Toggle) => {
+                let mut s = state.lock().unwrap();
+                if s.is_active() {
+                    s.stop();
+                    let _ = Notification::new()
+                        .appname("Phone Mic")
+                        .summary("Phone Mic")
+                        .body("Deactivated")
+                        .show();
+                } else if let Err(e) = s.start() {
+                    eprintln!("phone-mic error: {}", e);
+                    let _ = Notification::new()
+                        .appname("Phone Mic")
+                        .summary("Phone Mic Error")
+                        .body(&e)
+                        .show();
+                } else {
+                    let _ = Notification::new()
+                        .appname("Phone Mic")
+                        .summary("Phone Mic")
+                        .body("Activated")
+                        .show();
+                }
+            }
+            Ok(TrayMessage::Quit) => {
+                let mut s = state.lock().unwrap();
+                s.stop();
+                std::process::exit(0);
+            }
+            Err(_) => break,
+        }
+    }
 }

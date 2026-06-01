@@ -1,0 +1,17 @@
+[package]
+name = "phone-mic"
+version = "0.1.0"
+edition = "2021"
+description = "Use your phone as a microphone"
+license = "MIT"
+repository = "https://github.com/sharunkumar/phone-mic"
+
+[dependencies]
+notify-rust = "4.11.3"
+single-instance = "0.3.3"
+
+[target.'cfg(windows)'.dependencies]
+tray-item = "0.10.0"
+
+[target.'cfg(not(windows))'.dependencies]
+tray-item = { version = "0.10.0", features = ["ksni"] }
