@@ -3,6 +3,8 @@
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 
 const LATENCY: &str = "125";
 const PIPE: &str = "/tmp/scrcpy_pipe";
@@ -47,15 +49,14 @@ impl PhoneMicState {
             .map_err(|e| format!("invalid module id: {}", e))?;
         self.module_id = Some(module_id);
 
-        let parec = Command::new("parec")
+        let mut parec = Command::new("parec")
             .args(["--fix-rate", "-d", "Scrcpy", "--raw"])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
             .map_err(|e| format!("parec failed: {}", e))?;
-        self.parec = Some(parec);
 
-        let scrcpy = Command::new("scrcpy")
+        let mut scrcpy = Command::new("scrcpy")
             .args([
                 "--no-video",
                 "--no-window",
@@ -69,6 +70,18 @@ impl PhoneMicState {
             ])
             .spawn()
             .map_err(|e| format!("scrcpy failed: {}", e))?;
+
+        thread::sleep(Duration::from_millis(500));
+        if let Some(status) = scrcpy.try_wait().map_err(|e| format!("scrcpy wait failed: {}", e))? {
+            let _ = parec.kill();
+            let _ = parec.wait();
+            let _ = Command::new("pactl")
+                .args(["unload-module", &module_id.to_string()])
+                .output();
+            return Err(format!("scrcpy exited early (status: {}). Check your phone is connected.", status));
+        }
+
+        self.parec = Some(parec);
         self.scrcpy = Some(scrcpy);
 
         Ok(())
