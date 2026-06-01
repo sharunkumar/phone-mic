@@ -98,6 +98,14 @@ enum TrayMessage {
     Quit,
 }
 
+fn prime_adb() {
+    let _ = Command::new("adb")
+        .args(["devices"])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+}
+
 fn get_icon() -> IconSource {
     #[cfg(target_os = "windows")]
     return IconSource::Resource("phone-mic");
@@ -111,6 +119,8 @@ fn main() {
         eprintln!("Another instance of phone-mic is already running");
         std::process::exit(1);
     }
+
+    prime_adb();
 
     let mut tray = TrayItem::new("Phone Mic", get_icon()).unwrap();
     tray.add_label("Phone Mic").unwrap();
