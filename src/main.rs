@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::io::Write;
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
@@ -248,6 +249,16 @@ mod tray {
 // ---------------------------------------------------------------------------
 
 fn main() {
+    #[cfg(not(target_os = "windows"))]
+    if let Some(arg) = std::env::args().nth(1) {
+        if arg.eq_ignore_ascii_case("systemd") {
+            let service = include_str!("systemd/phone-mic.service");
+            print!("{}", service);
+            std::io::stdout().flush().ok();
+            std::process::exit(0);
+        }
+    }
+
     let instance = single_instance::SingleInstance::new("phone-mic").unwrap();
     if !instance.is_single() {
         eprintln!("Another instance of phone-mic is already running");

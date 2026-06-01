@@ -8,13 +8,31 @@ Use your phone as a microphone via scrcpy. System tray app written in Rust.
 - `pulseaudio-utils` — provides `parec` and `pactl`
 - `adb` — Android Debug Bridge
 
-## Usage
+## Installation
+
+After cloning the repo, run:
 
 ```
-cargo run
+cargo install --path .
 ```
 
 Left-click the tray icon to toggle. Right-click for Quit.
+
+## Auto-start with systemd
+
+```sh
+# Generate the unit file into the user systemd folder
+phone-mic systemd > ~/.config/systemd/user/phone-mic.service
+
+# Enable and start the service
+systemctl --user enable phone-mic.service --now
+
+# Check logs
+journalctl --user -u phone-mic.service --follow
+
+# Update after rebuilding
+systemctl --user restart phone-mic.service
+```
 
 ## How it works
 

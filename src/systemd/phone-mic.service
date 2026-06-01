@@ -1,0 +1,10 @@
+[Unit]
+Description=Phone Mic
+
+[Service]
+Environment="SYSTEMD=1"
+ExecStart="%h/.cargo/bin/phone-mic"
+Restart=always
+
+[Install]
+WantedBy=default.target
