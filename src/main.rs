@@ -135,6 +135,10 @@ mod tray {
     }
 
     impl ksni::Tray for PhoneMicTray {
+        fn id(&self) -> String {
+            "phone-mic".to_string()
+        }
+
         fn icon_name(&self) -> String {
             let active = self.data.lock().unwrap().active;
             if active { "media-record" } else { "phone-apple-iphone-symbolic" }.to_string()
@@ -142,6 +146,16 @@ mod tray {
 
         fn title(&self) -> String {
             "Phone Mic".to_string()
+        }
+
+        fn tool_tip(&self) -> ksni::ToolTip {
+            let active = self.data.lock().unwrap().active;
+            let status = if active { "Active" } else { "Inactive" };
+            ksni::ToolTip {
+                title: "Phone Mic".to_string(),
+                description: format!("Use your phone as a microphone — {}", status),
+                ..Default::default()
+            }
         }
 
         fn activate(&mut self, _x: i32, _y: i32) {
