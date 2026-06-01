@@ -124,7 +124,7 @@ mod tray {
     impl ksni::Tray for PhoneMicTray {
         fn icon_name(&self) -> String {
             let active = self.data.lock().unwrap().active;
-            if active { "media-record" } else { "audio-input-microphone" }.to_string()
+            if active { "media-record" } else { "phone-apple-iphone-symbolic" }.to_string()
         }
 
         fn title(&self) -> String {
