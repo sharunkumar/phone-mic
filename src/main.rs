@@ -1,6 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use notify_rust::Notification;
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
@@ -266,26 +265,11 @@ fn main() {
                     state.stop();
                     data.lock().unwrap().active = false;
                     handle.update();
-                    let _ = Notification::new()
-                        .appname("Phone Mic")
-                        .summary("Phone Mic")
-                        .body("Deactivated")
-                        .show();
                 } else if let Err(e) = state.start() {
                     eprintln!("phone-mic error: {}", e);
-                    let _ = Notification::new()
-                        .appname("Phone Mic")
-                        .summary("Phone Mic Error")
-                        .body(&e)
-                        .show();
                 } else {
                     data.lock().unwrap().active = true;
                     handle.update();
-                    let _ = Notification::new()
-                        .appname("Phone Mic")
-                        .summary("Phone Mic")
-                        .body("Activated")
-                        .show();
                 }
             }
             Ok(TrayMessage::Quit) => {

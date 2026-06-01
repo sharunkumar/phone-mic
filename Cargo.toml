@@ -7,7 +7,6 @@ license = "MIT"
 repository = "https://github.com/sharunkumar/phone-mic"
 
 [dependencies]
-notify-rust = "4.11.3"
 single-instance = "0.3.3"
 
 [target.'cfg(windows)'.dependencies]
