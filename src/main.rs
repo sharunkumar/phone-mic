@@ -138,19 +138,7 @@ mod tray {
 
         fn menu(&self) -> Vec<ksni::MenuItem<Self>> {
             use ksni::menu::*;
-            let data = self.data.lock().unwrap();
-            let label = if data.active { "Deactivate Phone Mic" } else { "Activate Phone Mic" };
-
             vec![
-                StandardItem {
-                    label: label.to_string(),
-                    activate: Box::new(|this: &mut PhoneMicTray| {
-                        let data = this.data.lock().unwrap();
-                        let _ = data.tx.send(TrayMessage::Toggle);
-                    }),
-                    ..Default::default()
-                }
-                .into(),
                 StandardItem {
                     label: "Quit".to_string(),
                     activate: Box::new(|this: &mut PhoneMicTray| {
@@ -196,23 +184,10 @@ mod tray {
         pub tx: mpsc::Sender<TrayMessage>,
     }
 
-    fn icon_for(active: bool) -> IconSource {
-        if active { IconSource::Resource("media-record") } else { IconSource::Resource("phone-mic") }
-    }
-
     fn build_tray_item(tx: mpsc::Sender<TrayMessage>, active: bool) -> TrayItem {
-        let mut tray = TrayItem::new("Phone Mic", icon_for(active)).unwrap();
+        let icon = if active { IconSource::Resource("media-record") } else { IconSource::Resource("phone-mic") };
+        let mut tray = TrayItem::new("Phone Mic", icon).unwrap();
         tray.add_label("Phone Mic").unwrap();
-
-        let label = if active { "Deactivate Phone Mic" } else { "Activate Phone Mic" };
-
-        let toggle_tx = tx.clone();
-        tray.add_menu_item(label, move || {
-            let _ = toggle_tx.send(TrayMessage::Toggle);
-        })
-        .unwrap();
-
-        tray.inner_mut().add_separator().unwrap();
 
         let quit_tx = tx;
         tray.add_menu_item("Quit", move || {
