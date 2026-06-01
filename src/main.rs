@@ -124,7 +124,8 @@ mod tray {
 
     impl ksni::Tray for PhoneMicTray {
         fn icon_name(&self) -> String {
-            "audio-input-microphone".to_string()
+            let active = self.data.lock().unwrap().active;
+            if active { "media-record" } else { "audio-input-microphone" }.to_string()
         }
 
         fn title(&self) -> String {
@@ -191,8 +192,12 @@ mod tray {
         pub tx: mpsc::Sender<TrayMessage>,
     }
 
+    fn icon_for(active: bool) -> IconSource {
+        if active { IconSource::Resource("media-record") } else { IconSource::Resource("phone-mic") }
+    }
+
     fn build_tray_item(tx: mpsc::Sender<TrayMessage>, active: bool) -> TrayItem {
-        let mut tray = TrayItem::new("Phone Mic", IconSource::Resource("phone-mic")).unwrap();
+        let mut tray = TrayItem::new("Phone Mic", icon_for(active)).unwrap();
         tray.add_label("Phone Mic").unwrap();
 
         let label = if active { "Deactivate Phone Mic" } else { "Activate Phone Mic" };
